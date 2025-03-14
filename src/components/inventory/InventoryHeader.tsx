@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { Home, Package } from "lucide-react";
+import { Home, Package, ShoppingCart } from "lucide-react";
 
 const InventoryHeader = () => {
   return (
@@ -13,6 +13,13 @@ const InventoryHeader = () => {
         </div>
         <nav>
           <ul className="flex gap-4">
+            <li>
+              <Button variant="secondary" asChild size="sm">
+                <Link to="/payment" className="flex items-center gap-1">
+                  <ShoppingCart className="h-4 w-4" /> Payment
+                </Link>
+              </Button>
+            </li>
             <li>
               <Button variant="secondary" asChild size="sm">
                 <Link to="/" className="flex items-center gap-1">

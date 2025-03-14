@@ -1,65 +1,32 @@
 
-import { useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Package } from 'lucide-react';
-import InstitutionNavbar from '../components/InstitutionNavbar';
-import Hero from '../components/InstitutionHero';
-import Programs from '../components/Programs';
-import Faculty from '../components/Faculty';
-import Campus from '../components/Campus';
-import About from '../components/InstitutionAbout';
-import Contact from '../components/InstitutionContact';
-import Footer from '../components/InstitutionFooter';
+import React from "react";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Package, ShoppingCart } from "lucide-react";
 
 const Index = () => {
-  useEffect(() => {
-    // Animation on scroll handler
-    const handleScroll = () => {
-      const reveals = document.querySelectorAll('.reveal');
-      const staggers = document.querySelectorAll('.stagger-animate');
-      
-      const scrollElements = [...reveals, ...staggers];
-      
-      scrollElements.forEach((el) => {
-        const elementTop = el.getBoundingClientRect().top;
-        const elementHeight = el.getBoundingClientRect().height;
-        const windowHeight = window.innerHeight;
-        
-        if (elementTop < windowHeight - elementHeight / 4) {
-          el.classList.add('active');
-        }
-      });
-    };
-    
-    // Initial check on load
-    handleScroll();
-    
-    // Add event listener
-    window.addEventListener('scroll', handleScroll);
-    
-    // Cleanup
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-  
   return (
-    <div className="min-h-screen">
-      <InstitutionNavbar />
-      <Hero />
-      <div className="fixed bottom-8 right-8 z-50">
-        <Button asChild className="rounded-full shadow-lg" size="lg">
-          <Link to="/inventory" className="flex items-center gap-2">
-            <Package className="h-4 w-4" />
-            Inventory Management
-          </Link>
-        </Button>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background text-foreground p-4">
+      <div className="max-w-md w-full space-y-8 text-center">
+        <div>
+          <h1 className="text-4xl font-bold">Welcome to Our POS System</h1>
+          <p className="mt-3 text-xl">A complete solution for inventory and sales management</p>
+        </div>
+        <div className="flex flex-col space-y-4">
+          <Button asChild size="lg" className="w-full">
+            <Link to="/inventory" className="flex items-center justify-center gap-2">
+              <Package className="h-5 w-5" />
+              Inventory Management
+            </Link>
+          </Button>
+          <Button asChild size="lg" variant="outline" className="w-full">
+            <Link to="/payment" className="flex items-center justify-center gap-2">
+              <ShoppingCart className="h-5 w-5" />
+              Payment Processing
+            </Link>
+          </Button>
+        </div>
       </div>
-      <Programs />
-      <Faculty />
-      <Campus />
-      <About />
-      <Contact />
-      <Footer />
     </div>
   );
 };
