@@ -1,12 +1,13 @@
 
 import { useEffect } from 'react';
-import Navbar from '../components/Navbar';
-import Hero from '../components/Hero';
-import Rooms from '../components/Rooms';
-import Amenities from '../components/Amenities';
-import About from '../components/About';
-import Contact from '../components/Contact';
-import Footer from '../components/Footer';
+import InstitutionNavbar from '../components/InstitutionNavbar';
+import Hero from '../components/InstitutionHero';
+import Programs from '../components/Programs';
+import Faculty from '../components/Faculty';
+import Campus from '../components/Campus';
+import About from '../components/InstitutionAbout';
+import Contact from '../components/InstitutionContact';
+import Footer from '../components/InstitutionFooter';
 
 const Index = () => {
   useEffect(() => {
@@ -40,10 +41,11 @@ const Index = () => {
   
   return (
     <div className="min-h-screen">
-      <Navbar />
+      <InstitutionNavbar />
       <Hero />
-      <Rooms />
-      <Amenities />
+      <Programs />
+      <Faculty />
+      <Campus />
       <About />
       <Contact />
       <Footer />
