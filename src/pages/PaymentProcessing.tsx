@@ -15,8 +15,9 @@ import InventoryHeader from "@/components/inventory/InventoryHeader";
 import PaymentMethods, { PaymentMethodType } from "@/components/payment/PaymentMethods";
 import CreditCardForm from "@/components/payment/CreditCardForm";
 import { Product } from "@/pages/InventoryManagement";
-import { CheckCircle, ArrowLeft, ShoppingCart, DollarSign } from "lucide-react";
+import { CheckCircle, ArrowLeft, ShoppingCart, DollarSign, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { processPayment, formatCurrency } from "@/utils/paymentUtils";
 
 interface PaymentProps {
   products?: Product[];
@@ -28,6 +29,8 @@ const PaymentProcessing = () => {
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethodType | null>(null);
   const [isCreditCardValid, setIsCreditCardValid] = useState(false);
   const [isPaymentComplete, setIsPaymentComplete] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [transactionId, setTransactionId] = useState("");
   const [cart, setCart] = useState<(Product & { quantity: number })[]>([]);
   const [orderTotal, setOrderTotal] = useState(0);
 
@@ -65,24 +68,57 @@ const PaymentProcessing = () => {
 
   const handleMethodSelect = (method: PaymentMethodType) => {
     setSelectedMethod(method);
+    
+    // Auto-process payment after method selection with a short delay
+    if (method !== "credit-card") {
+      setTimeout(() => {
+        handleProcessPayment();
+      }, 500);
+    }
   };
 
   const handleCreditCardFormChange = (isValid: boolean) => {
     setIsCreditCardValid(isValid);
+    
+    // Auto-process payment when credit card form becomes valid
+    if (isValid && selectedMethod === "credit-card") {
+      handleProcessPayment();
+    }
   };
 
-  const handleProcessPayment = () => {
+  const handleProcessPayment = async () => {
     // Validate based on payment method
     if (selectedMethod === "credit-card" && !isCreditCardValid) {
       toast.error("Please complete the credit card form correctly.");
       return;
     }
-
-    // Process payment (in a real application, this would call a payment API)
-    setIsPaymentComplete(true);
-    toast.success("Payment processed successfully!");
-
-    // In a real application, you would update inventory quantities here
+    
+    if (!selectedMethod) {
+      toast.error("Please select a payment method.");
+      return;
+    }
+    
+    setIsProcessing(true);
+    
+    try {
+      // In a real application, we would pass the actual payment details
+      const paymentDetails = selectedMethod === "credit-card" ? { /* card details */ } : {};
+      
+      const result = await processPayment(orderTotal, selectedMethod, paymentDetails);
+      
+      if (result.success) {
+        setTransactionId(result.transactionId);
+        setIsPaymentComplete(true);
+        toast.success(result.message);
+      } else {
+        toast.error(result.message);
+      }
+    } catch (error) {
+      toast.error("An unexpected error occurred. Please try again.");
+      console.error("Payment processing error:", error);
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const handleBackToInventory = () => {
@@ -92,6 +128,7 @@ const PaymentProcessing = () => {
   const handleNewTransaction = () => {
     setSelectedMethod(null);
     setIsPaymentComplete(false);
+    setTransactionId("");
   };
 
   return (
@@ -123,19 +160,19 @@ const PaymentProcessing = () => {
                   {cart.map((item) => (
                     <div key={item.id} className="flex justify-between">
                       <span>{item.name} x{item.quantity}</span>
-                      <span>${(item.price * item.quantity).toFixed(2)}</span>
+                      <span>{formatCurrency(item.price * item.quantity)}</span>
                     </div>
                   ))}
                   <Separator className="my-2" />
                   <div className="flex justify-between font-bold">
                     <span>Total</span>
-                    <span>${orderTotal.toFixed(2)}</span>
+                    <span>{formatCurrency(orderTotal)}</span>
                   </div>
                 </div>
               </div>
               <div className="text-center text-sm text-muted-foreground">
                 <p>A receipt has been sent to your email.</p>
-                <p>Order ID: {Math.random().toString(36).substring(2, 10).toUpperCase()}</p>
+                <p>Order ID: {transactionId}</p>
               </div>
             </CardContent>
             <CardFooter>
@@ -162,54 +199,64 @@ const PaymentProcessing = () => {
                         <p className="text-sm text-muted-foreground">SKU: {item.sku}</p>
                       </div>
                       <div className="text-right">
-                        <p>${item.price.toFixed(2)} x {item.quantity}</p>
-                        <p className="font-medium">${(item.price * item.quantity).toFixed(2)}</p>
+                        <p>{formatCurrency(item.price)} x {item.quantity}</p>
+                        <p className="font-medium">{formatCurrency(item.price * item.quantity)}</p>
                       </div>
                     </div>
                   ))}
                   <div className="flex justify-between items-center pt-2 font-bold">
                     <span>Total</span>
-                    <span>${orderTotal.toFixed(2)}</span>
+                    <span>{formatCurrency(orderTotal)}</span>
                   </div>
                 </CardContent>
               </Card>
               
-              <PaymentMethods 
-                onSelectMethod={handleMethodSelect}
-                selectedMethod={selectedMethod}
-              />
+              {!isProcessing ? (
+                <PaymentMethods 
+                  onSelectMethod={handleMethodSelect}
+                  selectedMethod={selectedMethod}
+                />
+              ) : (
+                <Card className="text-center p-6">
+                  <CardContent className="pt-6">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />
+                    <p className="text-lg font-medium">Processing Payment</p>
+                    <p className="text-sm text-muted-foreground mt-2">Please wait while we process your payment...</p>
+                  </CardContent>
+                </Card>
+              )}
             </div>
             
             <div>
-              {selectedMethod === "credit-card" && (
+              {selectedMethod === "credit-card" && !isProcessing && (
                 <CreditCardForm onFormChange={handleCreditCardFormChange} />
               )}
               
-              {selectedMethod === "cash" && (
+              {selectedMethod === "cash" && !isProcessing && (
                 <Card>
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <DollarSign className="h-5 w-5" />
                       Cash Payment
                     </CardTitle>
-                    <CardDescription>Enter the amount received</CardDescription>
+                    <CardDescription>Automatic cash processing</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="p-4 bg-muted/25 rounded-md text-center">
-                      <p className="text-lg">Amount due: <span className="font-bold">${orderTotal.toFixed(2)}</span></p>
+                      <p className="text-lg">Amount due: <span className="font-bold">{formatCurrency(orderTotal)}</span></p>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      The cashier will collect the cash payment and provide change if necessary.
+                      Payment will be processed automatically.
                     </p>
                   </CardContent>
                 </Card>
               )}
               
-              {selectedMethod === "store-credit" && (
+              {selectedMethod === "store-credit" && !isProcessing && (
                 <Card>
                   <CardHeader>
                     <CardTitle>Store Credit</CardTitle>
-                    <CardDescription>Apply available store credit</CardDescription>
+                    <CardDescription>Automatic store credit processing</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="p-4 bg-muted/25 rounded-md text-center">
@@ -217,41 +264,29 @@ const PaymentProcessing = () => {
                       <p className="text-2xl font-bold">$100.00</p>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      Your store credit will be applied to this purchase.
+                      Your store credit will be applied automatically.
                     </p>
                   </CardContent>
                 </Card>
               )}
               
-              {selectedMethod === "invoice" && (
+              {selectedMethod === "invoice" && !isProcessing && (
                 <Card>
                   <CardHeader>
                     <CardTitle>Invoice Payment</CardTitle>
-                    <CardDescription>Generate an invoice for later payment</CardDescription>
+                    <CardDescription>Automatic invoice generation</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <p className="text-sm text-muted-foreground">
-                      An invoice will be generated for this transaction. Payment is due within 30 days.
+                      An invoice will be automatically generated for this transaction. Payment is due within 30 days.
                     </p>
                     <div className="p-4 bg-muted/25 rounded-md">
                       <p className="font-medium">Invoice Details:</p>
-                      <p className="text-sm">Invoice #: INV-{Math.random().toString(36).substring(2, 10).toUpperCase()}</p>
-                      <p className="text-sm">Due Date: {new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString()}</p>
+                      <p className="text-sm">Processing...</p>
                     </div>
                   </CardContent>
                 </Card>
               )}
-              
-              <div className="mt-6">
-                <Button 
-                  className="w-full"
-                  size="lg"
-                  disabled={!selectedMethod || (selectedMethod === "credit-card" && !isCreditCardValid)}
-                  onClick={handleProcessPayment}
-                >
-                  Process Payment
-                </Button>
-              </div>
             </div>
           </div>
         )}
