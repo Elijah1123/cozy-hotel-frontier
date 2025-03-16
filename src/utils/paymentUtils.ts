@@ -16,9 +16,11 @@ export const processPayment = async (
       const isSuccessful = Math.random() > 0.05;
       
       if (isSuccessful) {
+        const transactionId = Math.random().toString(36).substring(2, 16).toUpperCase();
+        toast.success(`Payment successful! Transaction ID: ${transactionId}`);
         resolve({
           success: true,
-          transactionId: Math.random().toString(36).substring(2, 16).toUpperCase(),
+          transactionId: transactionId,
           message: "Payment processed successfully"
         });
       } else {
@@ -31,6 +33,7 @@ export const processPayment = async (
           errorMessage = "Insufficient store credit";
         }
         
+        toast.error(`Payment failed: ${errorMessage}`);
         resolve({
           success: false,
           transactionId: "",
@@ -48,3 +51,20 @@ export const formatCurrency = (amount: number): string => {
     currency: 'USD',
   }).format(amount);
 };
+
+// Get payment method details
+export const getPaymentMethodDescription = (method: PaymentMethodType): string => {
+  switch (method) {
+    case "credit-card":
+      return "Credit Card payment";
+    case "cash":
+      return "Cash payment at checkout";
+    case "store-credit":
+      return "Store Credit";
+    case "invoice":
+      return "Invoice for later payment";
+    default:
+      return "Payment";
+  }
+};
+
