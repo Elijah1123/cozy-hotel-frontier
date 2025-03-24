@@ -1,101 +1,43 @@
 
 import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
-
-interface Character {
-  id: number;
-  name: string;
-  image: string;
-  votes: number;
-}
+import CharacterBar from '../components/flatacuties/CharacterBar';
+import CharacterDetail from '../components/flatacuties/CharacterDetail';
+import AddCharacterForm from '../components/flatacuties/AddCharacterForm';
+import { Character, fetchCharacters, fetchCharacterById } from '../services/flatacutiesService';
 
 const Flatacuties = () => {
   const [characters, setCharacters] = useState<Character[]>([]);
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
-  const [voteCount, setVoteCount] = useState<string>('');
 
   // Run initialization on component mount
   useEffect(() => {
-    fetchCharacters();
+    loadCharacters();
   }, []);
 
-  // Fetch all characters
-  const fetchCharacters = async () => {
-    try {
-      const response = await fetch('http://localhost:3000/characters');
-      if (!response.ok) throw new Error('Failed to fetch characters');
-      const data = await response.json();
-      setCharacters(data);
-    } catch (error) {
-      console.error('Error fetching characters:', error);
-      toast.error('Failed to load characters. Make sure json-server is running!');
-    }
+  const loadCharacters = async () => {
+    const data = await fetchCharacters();
+    setCharacters(data);
   };
 
-  // Fetch a single character by ID
-  const fetchCharacterById = async (id: number) => {
-    try {
-      const response = await fetch(`http://localhost:3000/characters/${id}`);
-      if (!response.ok) throw new Error('Failed to fetch character details');
-      const character = await response.json();
+  const handleCharacterSelect = async (id: number) => {
+    const character = await fetchCharacterById(id);
+    if (character) {
       setSelectedCharacter(character);
-    } catch (error) {
-      console.error('Error fetching character details:', error);
-      toast.error('Failed to load character details');
     }
   };
 
-  // Handle voting
-  const handleVoteSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedCharacter) return;
+  const handleVoteUpdate = (updatedCharacter: Character) => {
+    setSelectedCharacter(updatedCharacter);
     
-    const votes = parseInt(voteCount);
-    if (isNaN(votes) || votes < 1) {
-      toast.error('Please enter a valid number of votes');
-      return;
-    }
-    
-    setSelectedCharacter({
-      ...selectedCharacter,
-      votes: selectedCharacter.votes + votes
-    });
-    setVoteCount('');
+    // Update the character in the characters array as well
+    setCharacters(characters.map(char => 
+      char.id === updatedCharacter.id ? updatedCharacter : char
+    ));
   };
 
-  // Handle reset votes
-  const handleResetVotes = () => {
-    if (!selectedCharacter) return;
-    setSelectedCharacter({
-      ...selectedCharacter,
-      votes: 0
-    });
-  };
-
-  // Handle adding a new character
-  const handleAddCharacter = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    
-    const nameInput = e.currentTarget.elements.namedItem('name') as HTMLInputElement;
-    const imageInput = e.currentTarget.elements.namedItem('image') as HTMLInputElement;
-    
-    if (!nameInput?.value || !imageInput?.value) {
-      toast.error('Please provide both name and image URL');
-      return;
-    }
-    
-    const newCharacter: Character = {
-      id: characters.length + 1, // Simple ID generation for demo
-      name: nameInput.value,
-      image: imageInput.value,
-      votes: 0
-    };
-    
+  const handleAddCharacter = (newCharacter: Character) => {
     setCharacters([...characters, newCharacter]);
     setSelectedCharacter(newCharacter);
-    
-    nameInput.value = '';
-    imageInput.value = '';
   };
 
   return (
@@ -103,93 +45,22 @@ const Flatacuties = () => {
       <h1 className="text-3xl font-display font-bold text-center mb-8">Flatacuties</h1>
       <p className="text-center mb-8 text-muted-foreground">Click on a character to see more details and vote!</p>
       
-      <div id="character-bar" className="flex flex-wrap justify-center gap-4 mb-8">
-        {characters.map((character) => (
-          <span
-            key={character.id}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-md cursor-pointer hover:bg-accent transition-colors"
-            onClick={() => fetchCharacterById(character.id)}
-          >
-            {character.name}
-          </span>
-        ))}
-      </div>
+      <CharacterBar 
+        characters={characters} 
+        onCharacterSelect={handleCharacterSelect} 
+      />
 
       {selectedCharacter && (
-        <div id="detailed-info" className="max-w-md mx-auto bg-card p-6 rounded-lg shadow-md">
-          <h2 className="text-2xl font-display font-semibold mb-4 text-center">{selectedCharacter.name}</h2>
-          <img 
-            src={selectedCharacter.image} 
-            alt={selectedCharacter.name}
-            className="w-full h-64 object-cover rounded-md mb-4"
-          />
-          <p className="text-xl text-center mb-4">Votes: <span className="font-semibold">{selectedCharacter.votes}</span></p>
-          
-          <form id="votes-form" onSubmit={handleVoteSubmit} className="mb-4">
-            <div className="flex gap-2">
-              <input
-                type="number"
-                placeholder="Enter Votes"
-                className="flex-1 h-10 rounded-md border border-input bg-background px-3 py-2"
-                value={voteCount}
-                onChange={(e) => setVoteCount(e.target.value)}
-                min="1"
-                required
-              />
-              <button 
-                type="submit" 
-                className="bg-primary text-primary-foreground px-4 py-2 rounded-md hover:bg-primary/90"
-              >
-                Add Votes
-              </button>
-            </div>
-          </form>
-          
-          <button 
-            id="reset-btn" 
-            className="w-full bg-secondary text-secondary-foreground px-4 py-2 rounded-md hover:bg-secondary/90"
-            onClick={handleResetVotes}
-          >
-            Reset Votes
-          </button>
-        </div>
+        <CharacterDetail 
+          character={selectedCharacter} 
+          onVoteUpdate={handleVoteUpdate} 
+        />
       )}
 
-      <div className="max-w-md mx-auto mt-12 bg-card p-6 rounded-lg shadow-md">
-        <h3 className="text-xl font-display font-semibold mb-4">Add New Character</h3>
-        <form id="character-form" onSubmit={handleAddCharacter}>
-          <div className="space-y-4">
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium mb-1">Name</label>
-              <input
-                type="text"
-                id="name"
-                name="name"
-                placeholder="Character name"
-                className="w-full h-10 rounded-md border border-input bg-background px-3 py-2"
-                required
-              />
-            </div>
-            <div>
-              <label htmlFor="image" className="block text-sm font-medium mb-1">Image URL</label>
-              <input
-                type="text"
-                id="image"
-                name="image"
-                placeholder="Image URL"
-                className="w-full h-10 rounded-md border border-input bg-background px-3 py-2"
-                required
-              />
-            </div>
-            <button 
-              type="submit" 
-              className="w-full bg-accent text-accent-foreground px-4 py-2 rounded-md hover:bg-accent/90"
-            >
-              Add Character
-            </button>
-          </div>
-        </form>
-      </div>
+      <AddCharacterForm 
+        onAddCharacter={handleAddCharacter} 
+        charactersCount={characters.length} 
+      />
     </div>
   );
 };
