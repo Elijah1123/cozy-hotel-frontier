@@ -27,7 +27,7 @@ const Hero = () => {
   const [loadedImages, setLoadedImages] = useState<string[]>([]);
 
   useEffect(() => {
-    // Preload all images
+   
     const preloadImages = async () => {
       const promises = slides.map((slide) => {
         return new Promise<string>((resolve) => {
@@ -44,7 +44,6 @@ const Hero = () => {
 
     preloadImages();
 
-    // Auto rotate slides
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % slides.length);
     }, 6000);
